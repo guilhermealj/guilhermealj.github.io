@@ -8,7 +8,7 @@
 
   <title>Guilherme Almeida — Data Science Portfolio</title>
   <meta name="description" content="Senior Data Scientist with 6+ years of experience in analytics, across customer service and legal-process domains. Degree in Systems Analysis and Development and an MBA in Data Science from FIAP. First place in the FIAP Data Science MBA challenge.">
-  <meta property="og:title" content="Selected projects in data, analytics and machine learning">
+  <meta property="og:title" content="Selected projects in data science, analytics and machine learning">
   <meta property="og:locale" content="en_US">
   <meta property="og:site_name" content="Guilherme Almeida">
   <meta property="og:type" content="website">
@@ -36,6 +36,8 @@
 <h3 id="topic-modeling-trend-detection">Topic Modeling &amp; Trend Detection in Chat</h3>
 
 <p>A BERTrend-style pipeline that turns ~261k timestamped chat messages into evolving topics and flags which ones spike. Messages are embedded with BGE-M3 and clustered day by day (UMAP + HDBSCAN), with centroid merging that gives each topic temporal continuity. Bursts are detected with a robust, leak-free z-score (median/MAD over a trailing window) and then validated by semantic consolidation — answering "what blew up, when, and does it hold up?"</p>
+
+<p><img src="assets/images/topic-burst.png" alt="Daily share of messages for a detected topic, showing a clear burst in mid-August; the topic alone versus the topic plus semantically similar messages outside the cluster"></p>
 
 <p><a href="#"><img src="https://img.shields.io/badge/Python-white?logo=Python" alt="Python"></a> <a href="#"><img src="https://img.shields.io/badge/Jupyter-white?logo=Jupyter" alt="Jupyter"></a> <a href="#"><img src="https://img.shields.io/badge/scikit--learn-white?logo=scikitlearn" alt="scikit-learn"></a> <a href="#"><img src="https://img.shields.io/badge/BGE--M3-white" alt="BGE-M3"></a> <a href="#"><img src="https://img.shields.io/badge/UMAP-white" alt="UMAP"></a> <a href="#"><img src="https://img.shields.io/badge/HDBSCAN-white" alt="HDBSCAN"></a></p>
 
