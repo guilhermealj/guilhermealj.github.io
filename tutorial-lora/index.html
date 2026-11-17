@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="Apresentação de cinco minutos sobre LoRA e suas variantes. Três slides, com animação interativa de LoRA dentro de uma rede neural.">
+  <title>LoRA · Adaptação eficiente de modelos</title>
+  <style>
+    :root{--paper:#f7f5ef;--ink:#18372f;--muted:#53635c;--base:#236b5b;--train:#b54e2e;--line:#c9d2c9;--outside:#162820;--sans:"Segoe UI",Arial,sans-serif;--math:"Cambria Math",Cambria,"Times New Roman",serif}
+    *{box-sizing:border-box}
+    html,body{margin:0;width:100%;height:100%;overflow:hidden}
+    body{font-family:var(--sans);background:var(--outside);color:var(--ink)}
+    button,a{-webkit-tap-highlight-color:transparent}
+    button{font:inherit;cursor:pointer}
+    button:focus-visible,a:focus-visible{outline:3px solid var(--train);outline-offset:6px}
+    .viewport{position:fixed;inset:0 0 62px;display:flex;align-items:center;justify-content:center}
+    .stage{position:relative;flex:none;width:1600px;height:900px;background:var(--paper);transform-origin:center center;overflow:hidden}
+    .slide{position:absolute;inset:0;display:none;padding:66px 84px 62px;background:var(--paper)}
+    .slide.active{display:block;animation:appear .2s ease-out}
+    @keyframes appear{from{opacity:.2}to{opacity:1}}
+    .slide-header{display:flex;align-items:center;justify-content:space-between;height:28px;margin-bottom:26px;color:var(--muted);font-size:21px;font-weight:600;letter-spacing:.025em}
+    .slide-header .section{color:var(--base)}
+    h1,h2,h3,p{margin:0}
+    h2{font-size:58px;line-height:1.12;font-weight:650;letter-spacing:-1.8px}
+    .footer{position:absolute;left:84px;right:84px;bottom:31px;display:flex;align-items:center;justify-content:space-between;gap:24px;font-size:20px;color:var(--muted)}
+    .footer a{color:inherit;text-decoration:none;text-underline-offset:4px}
+    .footer a:hover{text-decoration:underline}
+    .slide-number{font-size:19px;font-variant-numeric:tabular-nums}
+    .math{font-family:var(--math);font-weight:400}
+    math{font-family:var(--math)}
+    .base{color:var(--base)}
+    .train{color:var(--train)}
+    .muted{color:var(--muted)}
+    .intro-layout{display:grid;grid-template-columns:670px 1fr;gap:80px;align-items:center;height:610px}
+    .intro-title{font-size:140px;line-height:1;letter-spacing:-7px;font-weight:650;margin-bottom:26px}
+    .intro-subtitle{font-size:53px;line-height:1.15;letter-spacing:-1.6px;font-weight:500;max-width:610px}
+    .author{margin-top:57px;font-size:25px;line-height:1.5;color:var(--muted)}
+    .problem{padding-top:18px}
+    .problem h3{font-size:31px;font-weight:600;margin-bottom:25px}
+    .matrix{display:grid;gap:5px}
+    .matrix.full{grid-template-columns:repeat(12,23px);grid-auto-rows:23px;width:max-content}
+    .matrix.full span{background:var(--train)}
+    .matrix-label{display:flex;align-items:baseline;gap:14px;margin-top:15px}
+    .matrix-label .math{font-size:43px}
+    .matrix-label small{font-size:25px;color:var(--muted)}
+    .cost-list{display:flex;gap:36px;margin-top:39px;padding-top:24px;border-top:1px solid var(--line);font-size:25px}
+    .cost-note{margin-top:12px;font-size:21px;color:var(--muted)}
+    .equation-line{display:flex;align-items:center;gap:40px;margin-top:27px}
+    .main-equation{font-size:58px;line-height:1.4}
+    .equation-note{border-left:1px solid var(--line);padding-left:28px;font-size:25px;color:var(--muted);line-height:1.6}
+    .mechanism{display:grid;grid-template-columns:975px 1fr;gap:37px;margin-top:15px;align-items:center}
+    .flow{width:975px;height:363px;overflow:visible}
+    svg text{font-family:var(--sans);fill:var(--ink)}
+    svg .symbol{font-family:var(--math);font-size:43px}
+    svg .dimension{font-family:var(--math);font-size:26px;fill:var(--muted)}
+    svg .caption{font-size:24px}
+    svg .trained{fill:var(--train)}
+    svg .fixed{fill:var(--base)}
+    .dimensions{border-left:1px solid var(--line);padding-left:33px;font-size:32px;line-height:1.85}
+    .dimensions .math{white-space:nowrap}
+    .dimensions .rank{margin-top:21px;font-size:39px;color:var(--train)}
+    .rank-explanation{font-size:29px;margin-top:11px;line-height:1.35}
+    .count-context{font-size:28px;color:var(--muted);margin-top:21px}
+    .comparison{display:grid;grid-template-columns:360px 548px 1fr;gap:45px;margin-top:43px;align-items:center}
+    .parameter-grid{display:grid;grid-template-columns:repeat(16,16px);grid-auto-rows:16px;gap:3px;width:301px;height:301px}
+    .parameter-grid span{background:var(--base)}
+    .parameter-grid span:last-child{background:var(--train)}
+    .grid-legend{font-size:20px;line-height:1.4;margin-top:20px;color:var(--muted)}
+    .legend-dot{display:inline-block;width:14px;height:14px;background:var(--train);margin-right:7px}
+    .counts{align-self:start;padding-top:4px}
+    .count-row{padding:17px 0 22px;border-bottom:1px solid var(--line)}
+    .count-row:first-child{padding-top:0}
+    .count-label{font-size:25px;color:var(--muted);display:flex;justify-content:space-between;align-items:baseline}
+    .count-label .math{font-size:31px;color:var(--ink)}
+    .count-value{font-size:64px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-1.6px;margin-top:6px}
+    .ratio{align-self:start;padding-top:37px;padding-left:8px}
+    .ratio strong{display:block;font-size:91px;letter-spacing:-4px;line-height:1;font-weight:600;color:var(--train)}
+    .ratio p{font-size:25px;line-height:1.35;margin-top:18px;max-width:300px}
+    .ratio .reduction{font-size:34px;color:var(--ink);margin-top:31px}
+    .memory-note{position:absolute;left:84px;right:84px;bottom:116px;border-top:2px solid var(--ink);padding-top:22px;display:flex;gap:46px;align-items:center}
+    .memory-note strong{font-size:28px;font-weight:600;white-space:nowrap}
+    .memory-note p{font-size:25px;color:var(--muted);line-height:1.4}
+    .methods{width:100%;border-collapse:collapse;table-layout:fixed;margin-top:41px}
+    .methods col:first-child{width:335px}
+    .methods col:nth-child(2){width:595px}
+    .methods th{text-align:left;font-weight:500;font-size:21px;color:var(--muted);padding:0 0 15px;border-bottom:2px solid var(--ink)}
+    .methods td{height:126px;border-bottom:1px solid var(--line);vertical-align:middle;padding:15px 0}
+    .method-name{font-size:36px;font-weight:650;letter-spacing:-.7px}
+    .method-ref{display:block;margin-top:4px;font-size:19px;color:var(--muted);text-decoration:none;width:max-content}
+    .method-ref:hover{text-decoration:underline;text-underline-offset:3px}
+    .method-description{font-size:32px;line-height:1.3;letter-spacing:-.5px}
+    .method-detail{font-size:25px;line-height:1.35;color:var(--muted);padding-left:30px!important}
+    .methods-footer{font-size:23px;color:var(--muted);margin-top:23px}
+    .conclusion{display:grid;grid-template-columns:1.02fr 1fr;gap:80px;margin-top:65px}
+    .closing-equation{font-size:57px;line-height:1.5;margin-top:29px}
+    .closing-label{font-size:27px;color:var(--muted);margin-top:20px;max-width:520px;line-height:1.4}
+    .closing-heading{font-size:25px;letter-spacing:.02em;color:var(--muted);font-weight:500}
+    .evaluation{border-left:1px solid var(--line);padding-left:66px}
+    .evaluation-list{margin-top:24px;font-size:37px;line-height:1.3;font-weight:500}
+    .evaluation-list div{padding:18px 0;border-bottom:1px solid var(--line)}
+    .evaluation-list div:last-child{border-bottom:0}
+    .closing-note{position:absolute;left:84px;right:84px;bottom:137px;border-top:2px solid var(--ink);padding-top:28px;display:flex;gap:54px;align-items:center}
+    .closing-note strong{font-size:37px;font-weight:600;color:var(--train)}
+    .closing-note span{font-size:28px;line-height:1.35;color:var(--muted);max-width:620px}
+    .controls{position:fixed;bottom:0;left:0;right:0;height:62px;display:flex;align-items:center;justify-content:center;gap:14px;color:#f0f3ed;background:var(--outside);z-index:10}
+    .controls button{border:0;border-radius:4px;color:inherit;background:transparent;width:40px;height:36px;font-size:23px;display:grid;place-items:center}
+    .controls button:hover{background:#2b4337}
+    .controls button:disabled{opacity:.25;cursor:default}
+    .controls .counter{font-size:14px;min-width:50px;text-align:center;font-variant-numeric:tabular-nums}
+    .dots{display:flex;align-items:center;gap:9px;margin:0 10px}
+    .dots button{width:25px;height:32px;padding:0}
+    .dots button::after{content:"";display:block;width:7px;height:7px;border-radius:50%;background:#718679}
+    .dots button[aria-current="true"]::after{background:#f7f5ef;width:9px;height:9px}
+    .divider{height:19px;width:1px;background:#456050;margin:0 5px}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    .help{background:var(--paper);border:0;border-radius:5px;padding:35px 40px;color:var(--ink);max-width:480px;width:calc(100% - 40px);font-size:18px}
+    .help::backdrop{background:#0009}
+    .help h2{font-size:29px;letter-spacing:-.5px;margin-bottom:22px}
+    .help dl{margin:0;display:grid;grid-template-columns:140px 1fr;row-gap:14px}
+    .help dt,.help dd{margin:0}
+    .help dt{font-weight:600}
+    .help button{margin-top:28px;border:1px solid var(--line);background:transparent;padding:10px 20px;border-radius:3px;color:var(--ink)}
+    #status{position:fixed}
+    @media(prefers-reduced-motion:reduce){.slide.active{animation:none}}
+    @media print{
+      @page{size:1600px 900px;margin:0}
+      html,body{width:1600px;height:auto;overflow:visible;background:var(--paper);print-color-adjust:exact;-webkit-print-color-adjust:exact}
+      .viewport{position:static;display:block;width:1600px;height:auto}
+      .stage{transform:none!important;position:static;height:auto;overflow:visible}
+      .slide,.slide.active{display:block!important;position:relative;width:1600px;height:900px;break-after:page;break-inside:avoid;animation:none}
+      .slide:last-child{break-after:auto}
+      .controls,.help,#status{display:none!important}
+    }
+  /* A cena mantém a mesma linguagem visual dos slides originais. */
+.phase-title{font-size:27px;line-height:1.3;color:var(--muted);margin-top:16px;height:36px}
+#lora-scene{display:block;width:1432px;height:510px;margin-top:9px;overflow:hidden}
+#lora-scene .scene-label{font-size:25px;font-weight:500}
+#lora-scene .small-scene{font-size:21px}
+#lora-scene .scene-math{font-size:27px;font-family:var(--math)}
+#lora-scene .scene-dimension{font-size:26px;font-family:var(--math)}
+#lora-scene .scene-operator{font-size:43px;font-family:var(--math)}
+#lora-scene .orange-fill{fill:var(--train)}
+#lora-scene .muted-fill{fill:var(--muted)}
+#lora-scene .scene-reveal{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .65s cubic-bezier(.22,1,.36,1);pointer-events:none}
+#lora-scene .scene-reveal.shown{opacity:1;transform:translateY(0);pointer-events:auto}
+#lora-scene .frozen-weight{fill:#eef0e9;stroke:#99aaa0;stroke-width:1.4}
+#lora-scene .selected-weight{fill:#eef0e9;stroke:var(--base);stroke-width:3}
+#lora-scene .frozen-lock{color:var(--muted)}
+#lora-scene .attention-boundary{fill:none;stroke:var(--line);stroke-width:1.5}
+#lora-scene .scene-connector{fill:none;stroke:#99aaa0;stroke-width:1.6}
+#lora-scene .arrow{marker-end:url(#scene-arrow)}
+#lora-scene .zoom-leader{fill:none;stroke:var(--base);stroke-width:1.8;stroke-dasharray:5 5}
+#lora-scene .match-line{fill:none;stroke:var(--muted);stroke-width:1.3;marker-end:url(#scene-arrow)}
+#lora-scene .formula-text{font-family:var(--math);font-size:38px}
+#lora-scene .overview-big{font-size:35px;font-weight:500}
+#lora-scene .overview-small{font-size:27px}
+#lora-scene .block-shell{fill:#edf0e9;stroke:#99aaa0;stroke-width:1.6;transition:fill .5s,stroke .5s,stroke-width .5s}
+#lora-scene .network-block.selected .block-shell{fill:#dce8dd;stroke:var(--base);stroke-width:3.5}
+#lora-scene .network-block.selected .selection-line{opacity:1}
+#lora-scene .selection-line{opacity:0;stroke:var(--base);stroke-width:3;transition:opacity .4s}
+#lora-scene .network-number{font-size:23px;font-weight:500}
+#lora-scene .network-caption{font-size:20px}
+#lora-scene .head-box{fill:none;stroke:var(--train);stroke-width:2}
+#lora-scene .matrix-cell{stroke:var(--paper);stroke-width:.9;transition:fill .12s linear,opacity .3s}
+#lora-scene .matrix-outline{fill:none;stroke:var(--base);stroke-width:1.5}
+#lora-scene .matrix-outline.trainable{stroke:var(--train)}
+#lora-scene .slice{fill:none;stroke:var(--train);stroke-width:3;opacity:0;transition:opacity .18s,transform .25s}
+#lora-scene .training-signal{fill:none;stroke:var(--train);stroke-width:3;opacity:0}
+#lora-scene .training .training-signal{animation:training-pulse 1.6s ease-in-out 2}
+#lora-scene.paused .training-signal{animation-play-state:paused}
+#lora-scene #formula.shown{transform:translateY(0)}
+@keyframes training-pulse{0%,100%{opacity:.1}50%{opacity:.85}}
+.animation-controls{position:absolute;left:84px;right:84px;bottom:89px;display:flex;align-items:center;gap:13px;height:42px}
+.animation-controls button{color:var(--ink);font-size:19px;line-height:1.2;background:transparent;border:1px solid var(--line);border-radius:3px;padding:9px 16px;min-height:42px}
+.animation-controls button:hover{border-color:var(--base);background:#e9eee5}
+.animation-controls button:disabled{opacity:.3;cursor:default}
+#play-animation{min-width:230px;border-color:var(--base)}
+#step-counter{font-size:19px;font-variant-numeric:tabular-nums;color:var(--muted);margin-left:10px;min-width:65px}
+.step-track{display:flex;align-items:center;gap:13px;flex:1}
+.step-track button{border:0;border-bottom:3px solid var(--line);border-radius:0;padding:3px 0;min-width:62px;color:var(--muted)}
+.step-track button[aria-current="true"]{border-color:var(--train);color:var(--train);font-weight:600}
+#restart-animation{border:0;color:var(--muted)}
+.animation-footer{font-size:18px}
+.methods-footer{margin-top:22px}
+@media(prefers-reduced-motion:reduce){#lora-scene .scene-reveal,#lora-scene .matrix-cell,#lora-scene .slice{transition:none}#lora-scene .training .training-signal{animation:none;opacity:.5}}
+@media print{.animation-controls{display:none!important}#lora-scene .scene-reveal{opacity:1!important;transform:none!important}#overview-note,#initial-note{display:none!important}}
+
+</style>
+</head>
+<body>
+<main class="viewport" aria-label="Apresentação sobre LoRA"><div class="stage" id="stage">
+      <section class="slide active" id="slide-1" aria-labelledby="title-1" aria-hidden="false">
+        <header class="slide-header"><span class="section">Aprendizado de Máquina</span><span>SIN5016</span></header>
+        <div class="intro-layout">
+          <div>
+            <h1 class="intro-title" id="title-1">LoRA</h1>
+            <p class="intro-subtitle">Adaptação eficiente<br>de modelos</p>
+            <p class="author">Guilherme de Almeida José</p>
+          </div>
+          <div class="problem">
+            <h3>O custo do ajuste completo</h3>
+            <div class="matrix full" id="full-matrix" role="img" aria-label="Matriz de pesos com todas as entradas treináveis"></div>
+            <div class="matrix-label"><span class="math">W</span><small>Todos os pesos treináveis</small></div>
+            <div class="cost-list"><span>Pesos</span><span>Gradientes</span><span>Otimizador</span></div>
+            <p class="cost-note">Memória também inclui ativações</p>
+          </div>
+        </div>
+        <footer class="footer"><a href="https://arxiv.org/abs/2106.09685" target="_blank" rel="noopener">Hu et al., ICLR 2022</a><span class="slide-number">01 / 03</span></footer>
+      </section>
+      <section class="slide" id="slide-2" aria-labelledby="title-2" aria-hidden="true" inert>
+        <header class="slide-header"><span class="section">ViT-Tiny + LoRA</span><span>Um zoom dentro da atenção</span></header>
+        <h2 id="title-2">LoRA dentro da rede neural</h2>
+        <p class="phase-title" id="phase-title" aria-live="polite"></p>
+        <svg id="lora-scene" viewBox="0 0 1432 510" role="img" aria-labelledby="scene-title scene-desc">
+          <title id="scene-title">LoRA em uma projeção de atenção de um Vision Transformer</title>
+          <desc id="scene-desc">A rede tem doze blocos. A animação destaca a projeção Q do bloco seis. O peso original 192 por 192 fica congelado. B, de 192 por 4, multiplica A, de 4 por 192, produzindo uma correção 192 por 192, de posto no máximo quatro. Apenas os fatores e a nova cabeça são treináveis.</desc>
+          <defs>
+            <marker id="scene-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M1 1 L7 4 L1 7" fill="none" stroke="#60786b" stroke-width="1.5"/></marker>
+            <symbol id="lock" viewBox="0 0 18 21"><path d="M4 8 V5 a5 5 0 0 1 10 0 v3 M2 8 h14 v11 H2 Z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M9 12 v3" stroke="currentColor" stroke-width="1.7"/></symbol>
+          </defs>
+          <g id="network"></g>
+          <g class="detail scene-reveal" id="attention-detail">
+            <path d="M590 71 V108 H143 V144" class="zoom-leader"/>
+            <rect x="0" y="145" width="284" height="295" rx="4" class="attention-boundary"/>
+            <text x="142" y="176" class="scene-label" text-anchor="middle">Bloco 6 · autoatenção</text>
+            <g id="q-selection"><rect x="18" y="197" width="69" height="66" class="selected-weight"/><text x="52" y="225" text-anchor="middle" class="scene-math">W<tspan baseline-shift="sub" font-size="16">Q</tspan></text><use href="#lock" x="44" y="238" width="14" height="16" class="frozen-lock"/></g>
+            <rect x="107" y="197" width="69" height="66" class="frozen-weight"/><text x="141" y="225" text-anchor="middle" class="scene-math">W<tspan baseline-shift="sub" font-size="16">K</tspan></text><use href="#lock" x="134" y="238" width="14" height="16" class="frozen-lock"/>
+            <rect x="196" y="197" width="69" height="66" class="frozen-weight"/><text x="230" y="225" text-anchor="middle" class="scene-math">W<tspan baseline-shift="sub" font-size="16">V</tspan></text><use href="#lock" x="223" y="238" width="14" height="16" class="frozen-lock"/>
+            <path d="M52 266 V281 H142 V296 M230 266 V281 H142 M142 266 V296" class="scene-connector"/>
+            <rect x="31" y="299" width="222" height="43" class="frozen-weight"/><text x="142" y="327" text-anchor="middle" class="scene-label">Atenção</text>
+            <path d="M142 346 V366" class="scene-connector arrow"/>
+            <text x="142" y="392" text-anchor="middle" class="scene-label muted-fill">Saída + MLP</text>
+            <text x="142" y="422" text-anchor="middle" class="small-scene muted-fill">Pesos pré-treinados fixos</text>
+          </g>
+          <g id="original-weight" class="scene-reveal">
+            <text x="1280" y="167" text-anchor="middle" class="scene-label">W<tspan baseline-shift="sub" font-size="16">Q,0</tspan> original</text>
+            <g id="matrix-W0" transform="translate(1190 190)"></g>
+            <text x="1280" y="405" text-anchor="middle" class="scene-dimension">192 × 192</text>
+            <use href="#lock" x="1216" y="423" width="17" height="20" class="frozen-lock"/>
+            <text x="1290" y="441" text-anchor="middle" class="small-scene muted-fill">Congelado</text>
+          </g>
+          <g id="factors" class="scene-reveal">
+            <text x="430" y="167" text-anchor="middle" class="scene-label orange-fill">B</text>
+            <g id="matrix-B" transform="translate(400 190)"></g>
+            <text x="430" y="405" text-anchor="middle" class="scene-dimension orange-fill">192 × 4</text>
+            <text x="495" y="294" text-anchor="middle" class="scene-operator">×</text>
+            <text x="620" y="237" text-anchor="middle" class="scene-label orange-fill">A</text>
+            <g id="matrix-A" transform="translate(530 250)"></g>
+            <text x="620" y="349" text-anchor="middle" class="scene-dimension orange-fill">4 × 192</text>
+            <text x="566" y="442" text-anchor="middle" class="small-scene orange-fill">1.536 parâmetros treináveis</text>
+          </g>
+          <g id="product" class="scene-reveal">
+            <text x="761" y="294" text-anchor="middle" class="scene-operator">=</text>
+            <text x="930" y="167" text-anchor="middle" class="scene-label orange-fill">BA</text>
+            <g id="matrix-product" transform="translate(840 190)"></g>
+            <text x="930" y="405" text-anchor="middle" class="scene-dimension orange-fill">192 × 192</text>
+            <text x="930" y="441" text-anchor="middle" class="small-scene orange-fill">posto(BA) ≤ 4</text>
+            <g id="dimension-match"><path d="M1040 277 H1170" class="match-line"/><text x="1105" y="248" text-anchor="middle" class="small-scene muted-fill">Mesma</text><text x="1105" y="309" text-anchor="middle" class="small-scene muted-fill">dimensão</text></g>
+          </g>
+          <g id="formula" class="scene-reveal">
+            <text x="870" y="494" text-anchor="middle" class="formula-text">W<tspan baseline-shift="sub" font-size="21">Q</tspan><tspan baseline-shift="baseline"> = W</tspan><tspan baseline-shift="sub" font-size="21">Q,0</tspan><tspan baseline-shift="baseline"> + (α/r) BA</tspan></text>
+          </g>
+          <g id="initial-note"><text x="430" y="125" class="small-scene orange-fill">B = 0 na inicialização</text></g>
+          <g id="product-note"><text x="430" y="125" class="small-scene orange-fill" id="product-detail">Produto de duas matrizes pequenas</text></g>
+          <g id="overview-note"><text x="716" y="250" text-anchor="middle" class="overview-big">Os pesos pré-treinados ficam congelados</text><text x="716" y="303" text-anchor="middle" class="overview-small">Escolhemos uma projeção para visualizar a adaptação</text><text x="716" y="366" text-anchor="middle" class="overview-small muted-fill">A nova cabeça de três classes também será treinada</text></g>
+        </svg>
+        <div class="animation-controls" aria-label="Etapas da animação">
+          <button id="step-back" type="button" aria-label="Etapa anterior">‹</button>
+          <button id="play-animation" type="button">Reproduzir animação</button>
+          <button id="step-next" type="button" aria-label="Próxima etapa">›</button>
+          <span id="step-counter" aria-live="polite">1 / 6</span>
+          <div class="step-track" id="step-track" aria-label="Ir para uma etapa"></div>
+          <button id="restart-animation" type="button">Reiniciar</button>
+        </div>
+        <footer class="footer animation-footer"><span id="animation-footnote">Zoom de uma projeção. No notebook: LoRA em Q/V dos 12 blocos + cabeça treinável.</span><span class="slide-number">02 / 03</span></footer>
+      </section>
+
+      <section class="slide" id="slide-3" aria-labelledby="title-3" aria-hidden="true" inert>
+        <header class="slide-header"><span class="section">Desenvolvimentos</span><span>2023–2025</span></header>
+        <h2 id="title-3">Quatro extensões, quatro objetivos</h2>
+        <table class="methods" aria-label="Variantes de LoRA e suas intervenções">
+          <colgroup><col><col><col></colgroup>
+          <thead><tr><th>Trabalho</th><th>Intervenção</th><th>Foco</th></tr></thead>
+          <tbody>
+            <tr><td><span class="method-name">QLoRA</span><a class="method-ref" href="https://arxiv.org/abs/2305.14314" target="_blank" rel="noopener">Dettmers et al., 2023</a></td><td class="method-description">Base quantizada em 4 bits</td><td class="method-detail">Memória da base<br>Adaptadores em maior precisão</td></tr>
+            <tr><td><span class="method-name">LoRA+</span><a class="method-ref" href="https://proceedings.mlr.press/v235/hayou24a.html" target="_blank" rel="noopener">Hayou, Ghosh e Yu, 2024</a></td><td class="method-description">Taxas distintas para <span class="math">A</span> e <span class="math">B</span></td><td class="method-detail">Dinâmica de treinamento</td></tr>
+            <tr><td><span class="method-name">DoRA</span><a class="method-ref" href="https://proceedings.mlr.press/v235/liu24bn.html" target="_blank" rel="noopener">Liu et al., 2024</a></td><td class="method-description">Magnitude e direção separadas</td><td class="method-detail">Representação dos pesos</td></tr>
+            <tr><td><span class="method-name">LoRA-Pro</span><a class="method-ref" href="https://proceedings.iclr.cc/paper_files/paper/2025/file/ea184f920a0f0f8d8030aa1bd7ac9fd4-Paper-Conference.pdf" target="_blank" rel="noopener">Wang et al., 2025</a></td><td class="method-description">Correção dos gradientes dos fatores</td><td class="method-detail">Aproximação local<br>do gradiente completo</td></tr>
+          </tbody>
+        </table>
+        <p class="methods-footer">Ganhos dependem do modelo, da tarefa e da configuração</p>
+        <footer class="footer"><span>Eficiência exige avaliar qualidade, memória e tempo</span><span class="slide-number">03 / 03</span></footer>
+      </section>
+</div></main>
+  <nav class="controls" aria-label="Controles dos slides">
+    <button id="previous" aria-label="Slide anterior" title="Slide anterior">‹</button>
+    <span class="counter" id="counter" aria-hidden="true">1 / 3</span>
+    <button id="next" aria-label="Próximo slide" title="Próximo slide">›</button>
+    <span class="divider" aria-hidden="true"></span><div class="dots" id="dots"></div>
+    <span class="divider" aria-hidden="true"></span>
+    <button id="fullscreen" aria-label="Tela cheia" title="Tela cheia (F)">⛶</button>
+    <button id="help-open" aria-label="Atalhos" title="Atalhos (?)">?</button>
+  </nav>
+  <p id="status" class="sr-only" aria-live="polite"></p>
+  <dialog class="help" id="help" aria-labelledby="help-title">
+    <h2 id="help-title">Atalhos da apresentação</h2>
+    <dl><dt>→ / Espaço</dt><dd>Avançar slide ou etapa</dd><dt>←</dt><dd>Voltar slide ou etapa</dd>
+    <dt>1 a 3</dt><dd>Ir para um slide</dd><dt>P</dt><dd>Reproduzir ou pausar sequência</dd>
+    <dt>R</dt><dd>Reiniciar animação</dd><dt>F</dt><dd>Tela cheia</dd><dt>Esc</dt><dd>Fechar esta janela</dd></dl>
+    <button id="help-close" autofocus>Fechar</button>
+  </dialog>
+
+<script>
+(() => {
+  'use strict';
+  const MAT = {"A":[[0.00042639998719096184,0.007441299967467785,0.017993299290537834,-0.0011781000066548586,0.007023499812930822,0.01037530042231083,-0.0231161005795002,0.0051229000091552734,0.005890000145882368,0.012663399800658226,0.0073461998254060745,-0.000756800000090152],[-0.011386900208890438,-4.27999984822236e-05,-0.0016607999568805099,0.004244000185281038,-0.0003488000074867159,0.02504739910364151,0.013638399541378021,-0.0005589000065810978,0.033132199198007584,0.00750460010021925,-0.012167599983513355,0.00402839994058013],[-0.018569599837064743,0.003605700097978115,-0.0034221000969409943,-0.0024397000670433044,-0.018412699922919273,-0.0008843999821692705,0.006075900048017502,0.009119300171732903,-0.0008523000287823379,-0.017141500487923622,-0.015736199915409088,0.004329199902713299],[0.008216500282287598,0.01759910024702549,0.026057599112391472,0.022556399926543236,-0.003376200096681714,0.0043206000700592995,-0.022552799433469772,0.005983300041407347,0.020214799791574478,0.004386399872601032,0.00014429999282583594,-0.00476810010150075]],"B":[[-0.0003701999958138913,-0.004310199990868568,-0.002887000096961856,0.0003183000080753118],[-0.002855299971997738,0.0004861000052187592,0.0036377001088112593,-0.0024902999866753817],[-0.0015353000489994884,0.005112099926918745,0.0032804999500513077,-0.0005194999976083636],[-0.0045779999345541,-0.0011471000034362078,0.001984700094908476,-0.0018870000494644046],[-0.0027546000201255083,0.003264700062572956,0.005061499774456024,-0.004891199991106987],[0.004406500142067671,0.0030404001008719206,-0.005209399852901697,0.0031129999551922083],[0.0036708000116050243,-0.006163300015032291,-0.008943299762904644,0.003495299955829978],[0.002467599930241704,0.004194499924778938,0.0022364999167621136,0.0015025000320747495],[0.002316300058737397,0.0013961000367999077,-0.00010420000035082921,0.0011233000550419092],[0.007010499946773052,-0.0012739000376313925,-0.007522500120103359,0.004974800162017345],[-0.004999400116503239,0.0016051999991759658,-0.0001697999978205189,-0.002307299990206957],[-0.0008689999813213944,9.100000170292333e-06,0.003871999913826585,-0.0029555000364780426]],"W0":[[0.0016154999611899257,0.003051700070500374,0.004626399837434292,0.0005312000284902751,0.0040870001539587975,-0.003275600029155612,-0.0019803999457508326,-0.0010015999432653189,-0.00022509999689646065,0.003312499960884452,0.001406499999575317,-0.0008140000281855464],[-0.003379100002348423,0.005266500171273947,0.003166500013321638,0.00394799979403615,0.0037781998980790377,0.002193799940869212,-0.00692779989913106,0.0013972000451758504,0.0022615999914705753,-0.0005089999758638442,-0.0076918997801840305,-0.0006444000173360109],[-0.0012350999750196934,0.001567699946463108,0.003951599821448326,0.001222899998538196,0.004337599966675043,-0.0013409999664872885,0.00105189997702837,0.0006278000073507428,0.0023531001061201096,-0.0018675000173971057,0.0006493999972008169,-0.004041499923914671],[-0.0016497999895364046,-0.0012175999581813812,-0.003379599889740348,-0.0009654000168666244,0.002954700030386448,0.0028951000422239304,-0.002477400004863739,-0.002140199998393655,0.0029070000164210796,0.0002447000006213784,0.00182819995097816,0.002930199960246682],[-3.270000161137432e-05,-0.0017585000023245811,-0.005754199810326099,0.005423299968242645,-0.0014884000411257148,-0.0047078002244234085,0.0007602000259794295,-0.003362799994647503,0.00011839999933727086,0.011425799690186977,-0.002264800015836954,0.006713999900966883],[-0.00078369997208938,-0.00029490000451914966,0.003217400051653385,-0.0031644999980926514,-0.0016691000200808048,0.006252699997276068,0.0014155999524518847,-0.0038385000079870224,-0.005481100175529718,0.0065438998863101006,-0.010308699682354927,0.0011978000402450562],[0.0052454001270234585,0.0022088000550866127,0.0002815999905578792,0.005474799778312445,0.0017242999747395515,-0.006796100176870823,0.002631200011819601,-0.0005374000174924731,-0.0012820999836549163,-0.0038473999593406916,0.0007399999885819852,0.0014799999771639705],[0.008347800001502037,-0.0011360000353306532,0.008306300267577171,-0.00017499999376013875,0.004883499816060066,-0.004279499873518944,-0.00632240017876029,0.0004496999899856746,0.0007030999986454844,0.001963099930435419,0.0004115999909117818,-0.00738559989258647],[-0.004123100079596043,-0.002894599922001362,-0.0027958001010119915,-0.0016822000034153461,-0.004065200220793486,0.004755400121212006,0.006626199930906296,-1.7300000763498247e-05,-0.003850300097838044,0.005799000151455402,-0.00043670000741258264,-0.0004950999864377081],[0.0011027000145986676,0.005817300174385309,-0.001027400023303926,0.00023150000197347254,-0.0020999000407755375,-0.0021355999633669853,0.0030598000157624483,-0.0024623998906463385,-0.0020902000833302736,0.004408000037074089,-0.0034372000955045223,0.0004523000097833574],[0.0009171999990940094,6.86999992467463e-05,0.0014979999978095293,0.0006557999877259135,0.008524199947714806,-0.006979099940508604,0.0027244999073445797,-0.004756799899041653,0.004110800102353096,-0.0019393999828025699,-0.0011686000507324934,-0.00550720002502203],[-0.0004836999869439751,-0.0024347000289708376,-0.0022064000368118286,1.1199999789823778e-05,0.004597899969667196,0.0015907000051811337,-0.0004191999905742705,0.0033533999230712652,-0.0027451999485492706,0.005901999771595001,-0.004907499998807907,-0.002892900025472045]],"A0":[[-0.004347099922597408,0.006122400052845478,0.014020400121808052,-0.007312200032174587,0.009283499792218208,0.004710100125521421,-0.012879700399935246,0.009764700196683407,0.00030089999199844897,0.012238100171089172,0.005915299989283085,0.0038997000083327293],[-0.008632699958980083,0.0011844000546261668,-0.0008294000290334225,0.011532199569046497,0.0016090000281110406,0.020507799461483955,0.008694799616932869,-0.00419239979237318,0.032228998839855194,0.005027200095355511,-0.016832899302244186,0.003990299999713898],[-0.009486000053584576,0.004253599792718887,-0.0048269000835716724,0.005920299794524908,-0.01865459978580475,0.0020137999672442675,-0.0020483999978750944,0.0005005000275559723,0.005007999949157238,-0.017404500395059586,-0.018865499645471573,0.0025206999853253365],[0.002757699927315116,0.01667810045182705,0.02333570085465908,0.015985999256372452,-0.0009388999897055328,0.0012197999749332666,-0.013850999996066093,0.013184700161218643,0.01654849946498871,0.006082800216972828,0.003671000013127923,-0.004115100018680096]]};
+  const $ = id => document.getElementById(id);
+  const NS = 'http://www.w3.org/2000/svg';
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let slideIndex = 0, phase = 0, playing = false, autoTimer = null, raf = null, serial = 0, motionPaused = false;
+  const titles = [
+    'A rede e seus pesos pré-treinados',
+    'Zoom: projeção Q da atenção, no bloco 6',
+    'Criamos A e B, com dimensão interna r = 4',
+    'Após o treino: B × A produz uma matriz 192 × 192',
+    'A correção escalada se soma ao peso original',
+    'Treinamos A e B; os pesos pré-treinados permanecem fixos'
+  ];
+  const durations = [3200,3600,3800,6500,4500,5000];
+  const slides = [...document.querySelectorAll('.slide')];
+  const stepButtons = [];
+  const cells = {};
+  const make = (tag, attrs={}, text='') => {
+    const el=document.createElementNS(NS,tag);
+    Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,value));
+    if(text)el.textContent=text;
+    return el;
+  };
+  const addText = (group,x,y,text,cls='network-caption',anchor='middle')=>group.append(make('text',{x,y,class:cls,'text-anchor':anchor},text));
+  const addLock = (group,x,y,size=14)=>group.append(make('use',{href:'#lock',x,y,width:size,height:size*21/18,class:'frozen-lock'}));
+  const network = $('network');
+  network.append(make('rect',{x:0,y:16,width:105,height:56,class:'frozen-weight'}));
+  addText(network,52,41,'Patches');addText(network,52,65,'197 × 192','small-scene');
+  network.append(make('path',{d:'M108 44 H132',class:'scene-connector arrow'}));
+  for(let i=0;i<12;i++){
+    const x=136+i*84;
+    const g=make('g',{class:'network-block',id:`network-block-${i+1}`});
+    g.append(make('rect',{x,y:16,width:68,height:56,rx:3,class:'block-shell'}));
+    addText(g,x+23,51,String(i+1),'network-number');addLock(g,x+44,32,13);
+    g.append(make('path',{d:`M${x+4} 79 H${x+64}`,class:'selection-line'}));
+    network.append(g);
+    if(i<11)network.append(make('path',{d:`M${x+71} 44 H${x+82}`,class:'scene-connector arrow'}));
+  }
+  network.append(make('path',{d:'M1131 44 H1190',class:'scene-connector arrow'}));
+  network.append(make('rect',{x:1194,y:8,width:198,height:72,rx:3,class:'head-box'}));
+  addText(network,1293,38,'Cabeça · 3 classes');addText(network,1293,65,'Treinável','small-scene orange-fill');
+
+  function matrix(id,rows,cols,frozen=false){
+    const group=$(id),list=[];
+    for(let i=0;i<rows;i++)for(let j=0;j<cols;j++){
+      const rect=make('rect',{x:j*15,y:i*15,width:15,height:15,class:'matrix-cell'});
+      group.append(rect);list.push(rect);
+    }
+    group.append(make('rect',{x:0,y:0,width:cols*15,height:rows*15,class:`matrix-outline ${frozen?'':'trainable'}`}));
+    if(!frozen)group.append(make('rect',{x:-4,y:-4,width:cols*15+8,height:rows*15+8,class:'training-signal'}));
+    cells[id]=list;
+  }
+  matrix('matrix-W0',12,12,true);matrix('matrix-B',12,4);matrix('matrix-A',4,12);matrix('matrix-product',12,12);
+  const sliceB=make('rect',{x:0,y:0,width:15,height:180,class:'slice'});
+  const sliceA=make('rect',{x:0,y:0,width:180,height:15,class:'slice'});
+  $('matrix-B').append(sliceB);$('matrix-A').append(sliceA);
+  const maxAbs = values => Math.max(1e-12,...values.flat().map(Math.abs));
+  const product = (b,a,terms=4) => Array.from({length:12},(_,i)=>Array.from({length:12},(_,j)=>{
+    let sum=0;for(let k=0;k<terms;k++)sum+=b[i][k]*a[k][j];return sum;
+  }));
+  const BA=product(MAT.B,MAT.A);
+  const maxA=maxAbs(MAT.A),maxB=maxAbs(MAT.B),maxP=maxAbs(BA),maxW=maxAbs(MAT.W0);
+  function paint(id,values,limit,frozen=false){
+    values.flat().forEach((value,i)=>{
+      const strength=Math.min(1,Math.abs(value)/limit);
+      const target=frozen?(value>=0?[116,140,125]:[71,96,82]):(value>=0?[181,78,46]:[84,61,44]);
+      const base=[247,245,239];
+      const t=frozen?.14+strength*.4:strength*.88;
+      const rgb=base.map((v,k)=>Math.round(v+(target[k]-v)*t));
+      cells[id][i].setAttribute('fill',`rgb(${rgb.join(',')})`);
+    });
+  }
+  paint('matrix-W0',MAT.W0,maxW,true);
+  const zeros=()=>Array.from({length:12},()=>Array(12).fill(0));
+  function showGroup(id,visible){$(id).classList.toggle('shown',visible);$(id).setAttribute('aria-hidden',String(!visible));}
+  function slice(k){
+    sliceB.setAttribute('transform',`translate(${k*15} 0)`);
+    sliceA.setAttribute('transform',`translate(0 ${k*15})`);
+    sliceA.style.opacity='1';sliceB.style.opacity='1';
+  }
+  function hideSlices(){sliceA.style.opacity='0';sliceB.style.opacity='0';}
+  function cancelMotion(){serial++;if(raf!==null)cancelAnimationFrame(raf);raf=null;hideSlices();}
+  function tween(duration,fn,end=()=>{}){
+    const key=serial;let previousTime=performance.now(),elapsed=0;
+    const tick=now=>{
+      if(key!==serial)return;
+      if(!motionPaused)elapsed+=now-previousTime;
+      previousTime=now;
+      const t=reduced.matches?1:Math.min(1,elapsed/duration);
+      fn(t);if(t<1)raf=requestAnimationFrame(tick);else {raf=null;end();}
+    };
+    raf=requestAnimationFrame(tick);
+  }
+  function multiplyAnimation(){
+    paint('matrix-A',MAT.A,maxA);paint('matrix-B',MAT.B,maxB);
+    paint('matrix-product',zeros(),maxP);
+    tween(4000,t=>{
+      const k=Math.min(3,Math.floor(t*4));slice(k);
+      const full=Math.floor(t*4),fraction=t===1?0:(t*4-full);
+      const values=product(MAT.B,MAT.A,Math.min(4,full));
+      if(full<4)for(let i=0;i<12;i++)for(let j=0;j<12;j++)values[i][j]+=fraction*MAT.B[i][full]*MAT.A[full][j];
+      paint('matrix-product',values,maxP);
+      $('product-detail').textContent=`Soma de ${Math.min(4,full+1)} de 4 contribuições de posto 1`;
+    },()=>{hideSlices();$('product-detail').textContent='BA: mesma forma do peso original, posto no máximo 4';});
+  }
+  function trainingAnimation(){
+    $('factors').classList.add('training');
+    tween(2600,t=>{
+      const ease=t*t*(3-2*t);
+      const a=MAT.A.map((row,i)=>row.map((v,j)=>MAT.A0[i][j]+ease*(v-MAT.A0[i][j])));
+      const b=MAT.B.map(row=>row.map(v=>ease*v));
+      paint('matrix-A',a,maxA);paint('matrix-B',b,maxB);paint('matrix-product',product(b,a),maxP);
+    },()=>{$('factors').classList.remove('training');});
+  }
+  function renderPhase(value,animate=true){
+    cancelMotion();motionPaused=false;$('lora-scene').classList.remove('paused');phase=Math.max(0,Math.min(5,value));
+    $('phase-title').textContent=titles[phase];
+    $('step-counter').textContent=`${phase+1} / 6`;
+    $('step-back').disabled=phase===0;$('step-next').disabled=phase===5;
+    stepButtons.forEach((btn,i)=>btn.setAttribute('aria-current',String(i===phase)));
+    $('network-block-6').classList.toggle('selected',phase>=1);
+    showGroup('attention-detail',phase>=1);showGroup('original-weight',phase>=1);
+    showGroup('factors',phase>=2);showGroup('product',phase>=3);showGroup('formula',phase>=4);
+    $('overview-note').style.display=phase===0?'':'none';
+    $('initial-note').style.display=phase===2?'':'none';
+    $('product-note').style.display=phase>=3?'':'none';
+    $('dimension-match').style.opacity=phase>=3?'1':'0';
+    $('factors').classList.remove('training');
+    $('product-detail').textContent=phase===5?'A e B aprendem; WQ,0 continua igual':'Produto de duas matrizes pequenas';
+    paint('matrix-A',phase===2?MAT.A0:MAT.A,maxA);
+    paint('matrix-B',phase===2?MAT.B.map(row=>row.map(()=>0)):MAT.B,maxB);
+    paint('matrix-product',BA,maxP);
+    $('animation-footnote').textContent=phase===5
+      ? 'Transição ilustrativa até os pesos aprendidos. No notebook: Q/V nos 12 blocos + cabeça treinável.'
+      : 'Grades agregadas, fatores ampliados para leitura; dimensões reais nas legendas.';
+    if(phase===3&&animate&&!reduced.matches)multiplyAnimation();
+    if(phase===5&&animate&&!reduced.matches)trainingAnimation();
+  }
+  function stop(){playing=false;motionPaused=true;$('lora-scene').classList.add('paused');clearTimeout(autoTimer);autoTimer=null;$('play-animation').textContent='Reproduzir animação';$('play-animation').setAttribute('aria-pressed','false');}
+  function schedule(){
+    clearTimeout(autoTimer);
+    autoTimer=setTimeout(()=>{
+      if(!playing)return;
+      if(phase===5){stop();return;}
+      renderPhase(phase+1);schedule();
+    },durations[phase]);
+  }
+  function play(){
+    if(playing){stop();return;}
+    if(phase===5&&raf===null)renderPhase(0);
+    motionPaused=false;$('lora-scene').classList.remove('paused');playing=true;$('play-animation').textContent='Pausar sequência';$('play-animation').setAttribute('aria-pressed','true');schedule();
+  }
+  function step(direction){stop();renderPhase(phase+direction);}
+  for(let i=0;i<6;i++){
+    const button=document.createElement('button');button.type='button';button.textContent=String(i+1);
+    button.title=titles[i];button.setAttribute('aria-label',`Etapa ${i+1}: ${titles[i]}`);
+    button.addEventListener('click',()=>{stop();renderPhase(i);});$('step-track').append(button);stepButtons.push(button);
+  }
+  $('step-back').addEventListener('click',()=>step(-1));$('step-next').addEventListener('click',()=>step(1));
+  $('play-animation').addEventListener('click',play);
+  $('restart-animation').addEventListener('click',()=>{stop();renderPhase(0);});
+
+  const fullMatrix=$('full-matrix');for(let i=0;i<144;i++)fullMatrix.append(document.createElement('span'));
+  slides.forEach((slide,i)=>{
+    const button=document.createElement('button');button.type='button';button.setAttribute('aria-label',`Ir para o slide ${i+1}`);
+    button.addEventListener('click',()=>showSlide(i));$('dots').append(button);
+  });
+  function fit(){const box=document.querySelector('.viewport');$('stage').style.transform=`scale(${Math.min(box.clientWidth/1600,box.clientHeight/900)})`;}
+  function showSlide(index,writeHash=true){
+    const old=slideIndex;slideIndex=Math.max(0,Math.min(2,index));
+    if(old===1&&slideIndex!==1){stop();cancelMotion();}
+    slides.forEach((s,i)=>{const active=i===slideIndex;s.classList.toggle('active',active);s.inert=!active;s.setAttribute('aria-hidden',String(!active));$('dots').children[i].setAttribute('aria-current',String(active));});
+    $('previous').disabled=slideIndex===0;$('next').disabled=slideIndex===2;$('counter').textContent=`${slideIndex+1} / 3`;
+    if(slideIndex===1&&old!==1)renderPhase(phase,false);
+    document.title=`LoRA · ${slideIndex+1}/3`;
+    $('status').textContent=`Slide ${slideIndex+1} de 3`;
+    if(writeHash){try{history.replaceState(null,'',`#slide-${slideIndex+1}`);}catch{location.hash=`slide-${slideIndex+1}`;}}
+  }
+  function readHash(){const m=location.hash.match(/^#slide-(\d+)$/);return m?Math.max(0,Math.min(2,Number(m[1])-1)):0;}
+  function next(){if(slideIndex===1&&phase<5)step(1);else showSlide(slideIndex+1);}
+  function back(){if(slideIndex===1&&phase>0)step(-1);else showSlide(slideIndex-1);}
+  async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{$('status').textContent='Use F11 para tela cheia no navegador.';}}
+  $('previous').addEventListener('click',()=>showSlide(slideIndex-1));$('next').addEventListener('click',()=>showSlide(slideIndex+1));
+  $('fullscreen').addEventListener('click',fullscreen);
+  $('help-open').addEventListener('click',()=>$('help').showModal());$('help-close').addEventListener('click',()=>$('help').close());
+  window.addEventListener('resize',fit);window.addEventListener('hashchange',()=>showSlide(readHash(),false));
+  document.addEventListener('fullscreenchange',()=>{$('fullscreen').setAttribute('aria-pressed',String(!!document.fullscreenElement));fit();});
+  document.addEventListener('keydown',e=>{
+    if($('help').open||e.ctrlKey||e.metaKey||e.altKey||e.target.closest('input,textarea,select,[contenteditable]'))return;
+    if(e.key===' '&&e.target.closest('button,a'))return;
+    if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();next();}
+    else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();back();}
+    else if(e.key==='Home'){e.preventDefault();showSlide(0);}
+    else if(e.key==='End'){e.preventDefault();showSlide(2);}
+    else if(/^[1-3]$/.test(e.key)){e.preventDefault();showSlide(Number(e.key)-1);}
+    else if(e.key.toLowerCase()==='f'){e.preventDefault();fullscreen();}
+    else if(e.key.toLowerCase()==='p'&&slideIndex===1){e.preventDefault();play();}
+    else if(e.key.toLowerCase()==='r'&&slideIndex===1){e.preventDefault();stop();renderPhase(0);}
+    else if(e.key==='?'){e.preventDefault();$('help').showModal();}
+  });
+  // Ao sair da aba, interromper a sequência para não perder a etapa da explicação.
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();cancelMotion();}});
+  window.addEventListener('beforeprint',()=>{stop();renderPhase(4,false);});
+  renderPhase(0,false);fit();showSlide(readHash(),false);
+})();
+
+</script>
+</body>
+</html>
